@@ -1,120 +1,240 @@
-
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>خطة تقليل الجرعات - موسعة</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>خطة خفض الجرعات – 21 يوم</title>
   <style>
-    body { font-family: sans-serif; background: #f7f9fa; color: #222; padding: 10px; }
-    h1 { text-align: center; color: #004080; margin-bottom: 20px; }
-    .template-block { background: white; border-radius: 12px; padding: 15px; margin-bottom: 20px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
-    .template-block h2 { font-size: 18px; color: #006699; margin-bottom: 10px; }
-    .dose-group { margin-bottom: 10px; }
-    label { margin-left: 10px; }
-    input[type=number] { width: 50px; padding: 5px; margin: 0 5px; }
-    .alert { color: red; font-size: 14px; margin-top: 5px; }
-    .summary { margin-top: 5px; font-size: 15px; font-weight: bold; }
-    canvas { background: white; border-radius: 12px; margin-top: 30px; padding: 10px; width: 100%; }
+    :root { --font: 16px; --bg:#0b1020; --panel:#12182b; --text:#e8ecf2; --muted:#9aa3b2; --b:#253059; --ok:#23c552; --warn:#ffc857; --danger:#ff4d6d; }
+    body{margin:0;background:#0a0f1c;color:var(--text);font-size:var(--font);font-family:Inter,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+    .wrap{max-width:1100px;margin:0 auto;padding:18px}
+    h1{margin:10px 0 4px}
+    .sub{color:var(--muted);font-size:.9em}
+    .card{background:linear-gradient(180deg,#11182c,#0f1528);border:1px solid #1b2440;border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,.35);padding:14px;margin:12px 0}
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:12px;margin-top:12px}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:8px;border-bottom:1px dashed #1d274e;text-align:center}
+    thead th{border-bottom:1px solid #263056}
+    input[type="number"]{width:90px;padding:8px;border-radius:10px;border:1px solid var(--b);background:#0c1230;color:var(--text)}
+    .row-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+    .date{color:#c8d2ea;font-size:.9em}
+    .total{display:flex;align-items:center;gap:8px;font-size:.9em;color:#cbd4ea}
+    .bar{position:relative;flex:1;height:8px;background:#1b2546;border-radius:999px;overflow:hidden}
+    .bar>span{position:absolute;left:0;top:0;bottom:0;width:0;background:linear-gradient(90deg,#3aa0ff,#7c4dff)}
+    .flag{font-weight:700}
+    .ok{color:var(--ok)} .warn{color:var(--warn)} .danger{color:var(--danger)}
+    .pill{display:inline-block;padding:4px 10px;border-radius:999px;border:1px solid #263056;background:#0f162c;color:#c7d1e8;font-size:.85em;margin-inline:4px}
+    .muted{color:var(--muted)} .small{font-size:.9em}
   </style>
 </head>
 <body>
-  <h1>خطة تقليل الجرعات - 25 يوم</h1>
-  <div id="templates"></div>
-  <canvas id="chart" height="300"></canvas>
+  <div class="wrap">
+    <h1>خطة خفض الجرعات – 21 يوم</h1>
+    <div class="sub">✅ تاريخ البداية ثابت: يتم ضبطه تلقائيًا على تاريخ اليوم (بتوقيت القاهرة) عند أول فتح للصفحة. يتم حفظ كل إدخالاتك تلقائيًا.</div>
 
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <div class="card">
+      <div class="small">
+        <b>الجدول المرجعي (حد أقصى يومي لكل يوم):</b><br>
+        • Bravamax: يوم 1–7 = 600mg، 8–14 = 400mg، 15–21 = 200mg (حد الجرعة الواحدة 200mg).<br>
+        • Armowic: يوم 1–7 = 300mg، 8–14 = 150mg، 15–21 = 0mg (حد الجرعة الواحدة 150mg).<br>
+        • Gabapentin: يوم 1–7 = 1600mg، 8–14 = 1200mg، 15–21 = 800mg (حد الجرعة الواحدة 800mg).<br>
+        • Night Calm: 1–7 = 12mg، 8–9 = 9mg، 10–14 = 6mg، 15–21 = 0mg (حد الجرعة الواحدة = الحد اليومي لليوم).<br>
+        • Quetiapine: يظهر من يوم 15–21 = 25mg (ليليًا فقط؛ حد الجرعة الواحدة 25mg).
+      </div>
+    </div>
+
+    <div id="days" class="grid"></div>
+
+    <div class="card small muted">
+      💾 يتم الحفظ تلقائيًا على هذا الجهاز (LocalStorage). سيتم إبقاء تاريخ البداية ثابتًا بعد أول فتح. لو رغبت بتصفير كل البيانات: امسح بيانات الموقع من إعدادات المتصفح.
+    </div>
+  </div>
+
   <script>
-    const days = ['16 / 07', '17 / 07', '18 / 07', '19 / 07', '20 / 07', '21 / 07', '22 / 07', '23 / 07', '24 / 07', '25 / 07', '26 / 07', '27 / 07', '28 / 07', '29 / 07', '30 / 07', '31 / 07', '01 / 08', '02 / 08', '03 / 08', '04 / 08', '05 / 08', '06 / 08', '07 / 08', '08 / 08', '09 / 08'];
-    const plan = [[2.0, 6.0, 6.0], [1.92, 5.75, 5.75], [1.83, 5.5, 5.5], [1.75, 5.25, 5.25], [1.67, 5.0, 5.0], [1.58, 4.75, 4.75], [1.5, 4.5, 4.5], [1.42, 4.25, 4.25], [1.33, 4.0, 4.0], [1.25, 3.75, 3.75], [1.17, 3.5, 3.5], [1.08, 3.25, 3.25], [1.0, 3.0, 3.0], [0.92, 2.75, 2.75], [0.83, 2.5, 2.5], [0.75, 2.25, 2.25], [0.67, 2.0, 2.0], [0.58, 1.75, 1.75], [0.5, 1.5, 1.5], [0.42, 1.25, 1.25], [0.33, 1.0, 1.0], [0.25, 0.75, 0.75], [0.17, 0.5, 0.5], [0.08, 0.25, 0.25], [0.0, 0.0, 0.0]];
-    const meds = ["برافاماكس", "أرموويك", "نايت كالم"];
+    // ===== Helpers & State =====
+    const LS_KEY = 'taperPlan.v3';
+    const state = loadState() || initState();
+    saveState(); // ensure persisted on first run
 
-    const container = document.getElementById("templates");
-
-    days.forEach((day, dayIndex) => {
-      const block = document.createElement("div");
-      block.className = "template-block";
-
-      const dayTitle = document.createElement("h2");
-      dayTitle.textContent = day;
-      block.appendChild(dayTitle);
-
-      meds.forEach((med, medIndex) => {
-        const max = plan[dayIndex][medIndex];
-        const group = document.createElement("div");
-        group.className = "dose-group";
-
-        const label = document.createElement("label");
-        label.textContent = `${med} (الحد: ${max})`;
-        group.appendChild(label);
-
-        ["صباحًا", "مساءً", "ليلاً"].forEach(time => {
-          const span = document.createElement("span");
-          span.textContent = time + ": ";
-          group.appendChild(span);
-
-          const input = document.createElement("input");
-          input.type = "number";
-          input.min = "0";
-          input.step = "0.25";
-          group.appendChild(input);
-        });
-
-        const inputs = group.querySelectorAll("input");
-
-        const summary = document.createElement("div");
-        summary.className = "summary";
-        group.appendChild(summary);
-
-        const alertBox = document.createElement("div");
-        alertBox.className = "alert";
-        group.appendChild(alertBox);
-
-        const storageKey = `${day}_${med}`;
-        const savedValues = JSON.parse(localStorage.getItem(storageKey) || "[0, 0, 0]");
-        inputs.forEach((input, idx) => {
-          input.value = savedValues[idx] || "";
-        });
-
-        function updateSummary() {
-          let total = 0;
-          const values = [];
-          inputs.forEach(i => {
-            const val = parseFloat(i.value) || 0;
-            values.push(val);
-            total += val;
-          });
-          summary.textContent = `تم: ${total} / ${max}`;
-          alertBox.textContent = total > max ? "⚠️ تجاوزت الجرعة المسموحة!" : "";
-          localStorage.setItem(storageKey, JSON.stringify(values));
-        }
-
-        updateSummary();
-        inputs.forEach(input => input.addEventListener("input", updateSummary));
-
-        block.appendChild(group);
-      });
-
-      container.appendChild(block);
-    });
-
-    const ctx = document.getElementById('chart').getContext('2d');
-    new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: days,
-        datasets: [
-          { label: 'برافاماكس', data: plan.map(p => p[0]), borderWidth: 2 },
-          { label: 'أرموويك', data: plan.map(p => p[1]), borderWidth: 2 },
-          { label: 'نايت كالم', data: plan.map(p => p[2]), borderWidth: 2 }
-        ]
-      },
-      options: {
-        responsive: true,
-        scales: { y: { beginAtZero: true } },
-        plugins: { legend: { position: 'bottom' } }
+    function cairoTodayISO(){
+      try{
+        const fmt = new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Cairo',year:'numeric',month:'2-digit',day:'2-digit'});
+        return fmt.format(new Date());
+      }catch{
+        const d=new Date();const y=d.getFullYear();const m=String(d.getMonth()+1).padStart(2,'0');const dd=String(d.getDate()).padStart(2,'0');
+        return `${y}-${m}-${dd}`;
       }
-    });
+    }
+
+    function initState(){
+      const start = cairoTodayISO(); // fixed at first open
+      return { startDate: start, values: {} };
+    }
+    function loadState(){ try{ return JSON.parse(localStorage.getItem(LS_KEY)); }catch{ return null; } }
+    function saveState(){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
+
+    function addDaysISO(startISO, plus){
+      const d = new Date(startISO+'T00:00:00');
+      d.setDate(d.getDate()+plus);
+      return d.toLocaleDateString('ar-EG',{weekday:'long',year:'numeric',month:'2-digit',day:'2-digit'});
+    }
+
+    // ===== Per-day MAX (arrays length 21; index = day-1) =====
+    // Build arrays quickly with ranges
+    function seq(fill, s, e){ const a=new Array(21).fill(0); for(let i=s-1;i<=e-1;i++) a[i]=fill; return a; }
+    function overlay(base, val, s, e){ for(let i=s-1;i<=e-1;i++) base[i]=val; return base; }
+
+    const MAX = {
+      Bravamax: overlay( overlay( seq(0,1,21), 600, 1,7 ), 400, 8,14 ),
+      Armowic: overlay( seq(0,1,21), 300, 1,7 ),
+      Gabapentin: overlay( overlay( seq(0,1,21), 1600, 1,7 ), 1200, 8,14 ),
+      'Night Calm': (()=>{
+        const a = seq(0,1,21);
+        overlay(a,12,1,7); overlay(a,9,8,9); overlay(a,6,10,14); /* 15–21 remain 0 */
+        return a;
+      })(),
+      Quetiapine: overlay( seq(0,1,21), 25, 15,21 )
+    };
+    // Fill remaining segments
+    overlay(MAX.Bravamax,200,15,21);
+    overlay(MAX.Armowic,150,8,14);
+    overlay(MAX.Gabapentin,800,15,21);
+
+    // Per-dose (single input) limits
+    const DOSE_MAX = {
+      Bravamax: 200,
+      Armowic: 150,
+      Gabapentin: 800,
+      'Night Calm': null, // will use today's daily max as per-dose cap
+      Quetiapine: 25
+    };
+
+    const DRUG_ORDER = ['Bravamax','Armowic','Gabapentin','Night Calm','Quetiapine'];
+    const SLOTS = ['صباحًا','مساءً','ليلاً']; // Morning, Evening, Night (UI Arabic)
+
+    // ===== Render =====
+    const daysEl = document.getElementById('days');
+    for(let day=1; day<=21; day++){
+      const card = document.createElement('div');
+      card.className = 'card';
+
+      const dateHuman = addDaysISO(state.startDate, day-1);
+      card.innerHTML = `
+        <div class="row-h">
+          <div><b>اليوم ${day}</b></div>
+          <div class="date">${dateHuman}</div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>العقار</th>
+              <th>صباح</th>
+              <th>مساء</th>
+              <th>ليل</th>
+              <th>الحالة / الإجمالي</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      `;
+      daysEl.appendChild(card);
+      const tbody = card.querySelector('tbody');
+
+      DRUG_ORDER.forEach(drug=>{
+        const max = MAX[drug][day-1] || 0;
+        if (drug==='Quetiapine' && max===0) return; // لا يظهر قبل اليوم 15
+
+        const row = document.createElement('tr');
+        const disabled = max===0 ? 'disabled' : '';
+        row.innerHTML = `
+          <td style="text-align:right">${drug}<br><span class="muted small">الحد اليومي: ${max} mg</span></td>
+          <td>${inputHTML(day,drug,'m',disabled)}</td>
+          <td>${inputHTML(day,drug,'e',disabled)}</td>
+          <td>${inputHTML(day,drug,'n',disabled)}</td>
+          <td>
+            <div class="total">
+              <div class="bar"><span></span></div>
+              <div id="flag_${day}_${slug(drug)}" class="flag"></div>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(row);
+
+        // if disabled -> set flag
+        if (max===0){
+          const f = document.getElementById(`flag_${day}_${slug(drug)}`);
+          f.textContent = '✖ غير مسموح اليوم'; f.classList.add('danger');
+        }
+        // initial compute
+        refreshFlags(day,drug);
+        // attach listeners
+        ['m','e','n'].forEach(slot=>{
+          const el = document.getElementById(idFor(day,drug,slot));
+          if (!el) return;
+          el.addEventListener('input', ()=>{
+            // per-dose validation
+            const doseMax = DOSE_MAX[drug] ?? max;
+            const val = parseFloat(el.value||'0')||0;
+            el.style.borderColor = (doseMax && val>doseMax) ? 'var(--danger)' : 'var(--b)';
+            // persist
+            setCell(day,drug,slot,el.value);
+            refreshFlags(day,drug);
+          });
+        });
+      });
+    }
+
+    // ===== Inputs / Storage per cell =====
+    function idFor(day,drug,slot){ return `d${day}_${slug(drug)}_${slot}`; }
+    function slug(s){ return s.replace(/\s+/g,'_'); }
+
+    function getCell(day,drug){
+      const dKey = String(day);
+      state.values[dKey] = state.values[dKey] || {};
+      state.values[dKey][drug] = state.values[dKey][drug] || { m:'', e:'', n:'' };
+      return state.values[dKey][drug];
+    }
+    function setCell(day,drug,slot,val){
+      const c = getCell(day,drug); c[slot]=val; saveState();
+    }
+
+    function inputHTML(day,drug,slot,disabled){
+      const c = getCell(day,drug);
+      const v = (c && c[slot]) || '';
+      const id = idFor(day,drug,slot);
+      return `<input type="number" step="0.01" inputmode="decimal" id="${id}" value="${v}" ${disabled} />`;
+    }
+
+    // ===== Totals & Flags =====
+    function refreshFlags(day,drug){
+      const max = MAX[drug][day-1] || 0;
+      const flag = document.getElementById(`flag_${day}_${slug(drug)}`);
+      const bar = flag?.parentElement?.querySelector('.bar>span');
+      const c = getCell(day,drug);
+      const m = parseFloat(c.m||'0')||0, e=parseFloat(c.e||'0')||0, n=parseFloat(c.n||'0')||0;
+      const total = m+e+n;
+
+      if (max===0){
+        if (bar) bar.style.width='0%';
+        flag.textContent='✖ غير مسموح اليوم'; flag.className='flag danger';
+        return;
+      }
+
+      const pct = Math.min(100, (total/max)*100);
+      if (bar) bar.style.width = pct+'%';
+
+      if (total>max){ flag.textContent = `⚠ ${total.toFixed(2)} / ${max} mg (تجاوز)`; flag.className='flag danger'; }
+      else if (pct>=80){ flag.textContent = `${total.toFixed(2)} / ${max} mg`; flag.className='flag warn'; }
+      else { flag.textContent = `${total.toFixed(2)} / ${max} mg`; flag.className='flag ok'; }
+    }
+
+    // First paint: recompute all flags (restored values)
+    for(let day=1; day<=21; day++){
+      DRUG_ORDER.forEach(drug=>{
+        if (drug==='Quetiapine' && MAX[drug][day-1]===0) return;
+        refreshFlags(day,drug);
+      });
+    }
   </script>
 </body>
 </html>
